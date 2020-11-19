@@ -49,7 +49,7 @@ class Productos_Ctrl {
 
     public function listado($f3){
 
-        $result = $this->M_Producto->find(['nombre LIKE ?', '%' . $f3->get('POST.texto') . '%']);
+        $result = $this->M_Producto->find(['nombre LIKE ? AND activo = ?', '%' . $f3->get('POST.texto') . '%',1]);
         $items = array();
         foreach($result as $producto){
             $items[] = $producto->cast();
@@ -86,28 +86,45 @@ class Productos_Ctrl {
         $msg= "";
         //$estado = 0;
         $info = array();
-        if($this->M_Producto->loaded() > 0){
-
-            $_producto = new M_Productos();
-            $_producto->load(['codigo = ? AND id <> ?', $f3->get('POST.codigo'), $producto_id]);
-
-            if($_producto->loaded() > 0){
-                $msg = "El registro no se pudo modificar debido a que el codigo se encuentra en uso por otro producto.";
-                //$estado = -1;
-            }else{
-                $this->M_Producto->set('codigo', $f3->get('POST.codigo'));
-                $this->M_Producto->set('nombre', $f3->get('POST.nombre'));
-                $this->M_Producto->set('stock', $f3->get('POST.stock'));
-                $this->M_Producto->set('activo', $f3->get('POST.activo'));
-                $this->M_Producto->set('precio', $f3->get('POST.precio'));
-                $this->M_Producto->save();
-                $msg = "Producto actualizado.";
-                $info['id'] = $this->M_Producto->get('id');
-
-            }
-        } else {
-            $msg = "El Producto no existe.";
+        //-------inicio---------RECIBIR DATOS RAW JSON------------------
+        if ($f3->VERB == 'POST' && preg_match('/json/',$f3->get('HEADERS[Content-Type]')))
+        {
+           $f3->set('BODY', file_get_contents('php://input'));
+           if (strlen($f3->get('BODY'))) {
+              $data = json_decode($f3->get('BODY'),true);
+              if (json_last_error() == JSON_ERROR_NONE) {
+                 $f3->set('Error',$data);
+              }
+           }
         }
+        //-------fin---------RECIBIR DATOS RAW JSON------------------
+        if($data){
+            if($this->M_Producto->loaded() > 0){
+
+                $_producto = new M_Productos();
+                $_producto->load(['codigo = ? AND id <> ?', $data['codigo'], $producto_id]);
+
+                if($_producto->loaded() > 0){
+                    $msg = "El registro no se pudo modificar debido a que el codigo se encuentra en uso por otro producto.";
+                    //$estado = -1;
+                }else{
+                    $this->M_Producto->set('codigo', $data['codigo']);
+                    $this->M_Producto->set('nombre', $data['nombre']);
+                    $this->M_Producto->set('stock', $data['stock']);
+                    $this->M_Producto->set('activo', $data['activo']);
+                    $this->M_Producto->set('precio', $data['precio']);
+                    $this->M_Producto->save();
+                    $msg = "Producto actualizado.";
+                    $info['id'] = $this->M_Producto->get('id');
+
+                }
+            } else {
+                $msg = "El Producto no existe.";
+            }    
+        } else {
+            $msg = "No hay json";
+        }
+        
         echo json_encode([
             'mensaje' => $msg,
             'info' => []
