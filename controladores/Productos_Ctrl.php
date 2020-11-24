@@ -12,19 +12,47 @@ class Productos_Ctrl {
 
     public function crear($f3){
 
-        $this->M_Producto->set('codigo', $f3->get('POST.codigo'));
-        $this->M_Producto->set('nombre', $f3->get('POST.nombre'));
-        $this->M_Producto->set('stock', $f3->get('POST.stock'));
-        $this->M_Producto->set('precio', $f3->get('POST.precio'));
-        $this->M_Producto->set('activo', $f3->get('POST.activo'));
-        $this->M_Producto->save();
+        //-------inicio---------RECIBIR DATOS RAW JSON------------------
+            if ($f3->VERB == 'POST' && preg_match('/json/',$f3->get('HEADERS[Content-Type]')))
+            {
+               $f3->set('BODY', file_get_contents('php://input'));
+               if (strlen($f3->get('BODY'))) {
+                  $data = json_decode($f3->get('BODY'),true);
+                  if (json_last_error() == JSON_ERROR_NONE) {
+                     $f3->set('Error',$data);
+                  }
+               }
+            }
+            //-------fin---------RECIBIR DATOS RAW JSON------------------
+
+        $this->M_Producto->Load(['codigo = ?', $data['codigo']]);
+
+        if ($this->M_Producto->loaded()>0) {
+            echo json_encode([
+                'mensaje' => 'Ya existe un código en uso',
+                'info' => [
+                    'id' => 0
+                ]
+            ]);
+        }else{
+            
+
+            $this->M_Producto->set('codigo', $data['codigo']);
+            $this->M_Producto->set('nombre', $data['nombre']);
+            $this->M_Producto->set('stock', $data['stock']);
+            $this->M_Producto->set('activo', $data['activo']);
+            $this->M_Producto->set('precio', $data['precio']);
+            $this->M_Producto->save();
+            
+            echo json_encode([
+                'mensaje' => 'Producto creado',
+                'info' => [
+                    'id' => $this->M_Producto->get('id')
+                ]
+            ]);
+        }
+
         
-        echo json_encode([
-            'mensaje' => 'Producto creado',
-            'info' => [
-                'id' => $this->M_Producto->get('id')
-            ]
-        ]);
 
     }
 

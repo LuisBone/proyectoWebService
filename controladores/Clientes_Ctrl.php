@@ -12,7 +12,20 @@ class Clientes_Ctrl {
 
     public function crear($f3){
 
-        $this->M_Cliente->Load(['identificacion = ? OR correo = ?', $f3->get('POST.identificacion'), $f3->get('POST.correo')]);
+        //-------inicio---------RECIBIR DATOS RAW JSON------------------
+            if ($f3->VERB == 'POST' && preg_match('/json/',$f3->get('HEADERS[Content-Type]')))
+            {
+               $f3->set('BODY', file_get_contents('php://input'));
+               if (strlen($f3->get('BODY'))) {
+                  $data = json_decode($f3->get('BODY'),true);
+                  if (json_last_error() == JSON_ERROR_NONE) {
+                     $f3->set('Error',$data);
+                  }
+               }
+            }
+        //-------fin---------RECIBIR DATOS RAW JSON------------------ 
+
+        $this->M_Cliente->Load(['identificacion = ? OR correo = ?', $data['identificacion'], $data['correo']]);
 
         if ($this->M_Cliente->loaded()>0) {
             echo json_encode([
@@ -22,13 +35,15 @@ class Clientes_Ctrl {
                 ]
             ]);
         }else{
-            $this->M_Cliente->set('identificacion', $f3->get('POST.identificacion'));
-            $this->M_Cliente->set('nombre', $f3->get('POST.nombre'));
-            $this->M_Cliente->set('telefono', $f3->get('POST.telefono'));
-            $this->M_Cliente->set('correo', $f3->get('POST.correo'));
-            $this->M_Cliente->set('direccion', $f3->get('POST.direccion'));
-            $this->M_Cliente->set('pais', $f3->get('POST.pais'));
-            $this->M_Cliente->set('ciudad', $f3->get('POST.ciudad'));
+            
+            $this->M_Cliente->set('identificacion', $data['identificacion']);
+            $this->M_Cliente->set('nombre', $data['nombre']);
+            $this->M_Cliente->set('telefono', $data['telefono']);
+            $this->M_Cliente->set('correo', $data['correo']);
+            $this->M_Cliente->set('direccion', $data['direccion']);
+            $this->M_Cliente->set('pais', $data['pais']);
+            $this->M_Cliente->set('ciudad', $data['ciudad']);
+            $this->M_Cliente->set('activo', $data['activo']);
             $this->M_Cliente->save();
             
             echo json_encode([
@@ -95,24 +110,42 @@ class Clientes_Ctrl {
     }
 
     public function actualizar($f3){
+
+        //-------inicio---------RECIBIR DATOS RAW JSON------------------
+        if ($f3->VERB == 'POST' && preg_match('/json/',$f3->get('HEADERS[Content-Type]')))
+        {
+           $f3->set('BODY', file_get_contents('php://input'));
+           if (strlen($f3->get('BODY'))) {
+              $data = json_decode($f3->get('BODY'),true);
+              if (json_last_error() == JSON_ERROR_NONE) {
+                 $f3->set('Error',$data);
+              }
+           }
+        }
+        //-------fin---------RECIBIR DATOS RAW JSON------------------
+
         $cliente_id = $f3->get('PARAMS.cliente_id');
         $this->M_Cliente->Load(['id=?',$cliente_id]);
         $msg= "";
-        if($this->M_Cliente->loaded() > 0){
 
-            $_cliente = new M_Clientes();
-            $_cliente->load(['correo = ? AND id <> ?', $f3->get('POST.correo'), $cliente_id]);
+        if($this->M_Cliente->loaded() > 0){            
 
-            if($_cliente->loaded() > 0){
+            $cliente = new M_Clientes();
+            //$cliente->Load(['correo = ? AND id <> ?',$data['correo'],$cliente_id]);
+            $cliente->Load(['(correo = ? OR identificacion = ?) AND id <> ?',$data['correo'],$data['identificacion'],(int)$cliente_id]);
+
+            if($cliente->loaded() > 0){
                 $msg = "El registro no se pudo modificar debido a que el correo se encuentra en uso por otro cliente.";
             }else{
-                $this->M_Cliente->set('identificacion', $f3->get('POST.identificacion'));
-                $this->M_Cliente->set('nombre', $f3->get('POST.nombre'));
-                $this->M_Cliente->set('telefono', $f3->get('POST.telefono'));
-                $this->M_Cliente->set('correo', $f3->get('POST.correo'));
-                $this->M_Cliente->set('direccion', $f3->get('POST.direccion'));
-                $this->M_Cliente->set('pais', $f3->get('POST.pais'));
-                $this->M_Cliente->set('ciudad', $f3->get('POST.ciudad'));
+                
+                $this->M_Cliente->set('identificacion', $data['identificacion']);
+                $this->M_Cliente->set('nombre', $data['nombre']);
+                $this->M_Cliente->set('telefono', $data['telefono']);
+                $this->M_Cliente->set('correo', $data['correo']);
+                $this->M_Cliente->set('direccion', $data['direccion']);
+                $this->M_Cliente->set('pais', $data['pais']);
+                $this->M_Cliente->set('ciudad', $data['ciudad']);
+                $this->M_Cliente->set('activo', $data['activo']);
                 $this->M_Cliente->save();
                 $msg = "Cliente actualizado.";
             }
