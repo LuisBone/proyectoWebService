@@ -13,14 +13,27 @@ class Pedidos_Ctrl {
 
     public function crear($f3){
 
+        //-------inicio---------RECIBIR DATOS RAW JSON------------------
+        if ($f3->VERB == 'POST' && preg_match('/json/',$f3->get('HEADERS[Content-Type]')))
+        {
+           $f3->set('BODY', file_get_contents('php://input'));
+           if (strlen($f3->get('BODY'))) {
+              $data = json_decode($f3->get('BODY'),true);
+              if (json_last_error() == JSON_ERROR_NONE) {
+                 $f3->set('Error',$data);
+              }
+           }
+        }
+        //-------fin---------RECIBIR DATOS RAW JSON------------------
+
         //$fecha = $f3->get('POST.fecha');
         //$fecha = explode('.', $fecha)[0];
         //$fecha = str_replace('T', ' ', $fecha);
 
-        $this->M_Pedido->set('cliente_id', $f3->get('POST.cliente_id'));
-        $this->M_Pedido->set('fecha', $f3->get('POST.fecha'));
-        $this->M_Pedido->set('usuario_id', $f3->get('POST.usuario_id'));
-        $this->M_Pedido->set('estado', $f3->get('POST.estado'));
+        $this->M_Pedido->set('cliente_id', $data['cliente_id']);
+        $this->M_Pedido->set('fecha', $data['fecha']);
+        $this->M_Pedido->set('usuario_id', $data['usuario_id']);
+        $this->M_Pedido->set('estado', $data['estado']);
         $this->M_Pedido->save();
         
         echo json_encode([
@@ -31,21 +44,36 @@ class Pedidos_Ctrl {
         ]);
 
     }
+    
     //agregar productos detalle_pedidos
     public function agregar_producto($f3){
+
+        //-------inicio---------RECIBIR DATOS RAW JSON------------------
+        if ($f3->VERB == 'POST' && preg_match('/json/',$f3->get('HEADERS[Content-Type]')))
+        {
+           $f3->set('BODY', file_get_contents('php://input'));
+           if (strlen($f3->get('BODY'))) {
+              $data = json_decode($f3->get('BODY'),true);
+              if (json_last_error() == JSON_ERROR_NONE) {
+                 $f3->set('Error',$data);
+              }
+           }
+        }
+        //-------fin---------RECIBIR DATOS RAW JSON------------------
+
         $this->M_Pedido->load(['id = ?', $f3->get('PARAMS.pedido_id')]);
         //echo "<pre>".$f3->get('PARAMS.pedido_id')."</pre>";
         //echo "<pre>".$f3->get('POST.producto_id')."</pre>";
         if ($this->M_Pedido->loaded() > 0){
 
-            $this->M_Pedido_Detalle->load(['pedido_id = ? AND producto_id = ?', $f3->get('PARAMS.pedido_id'), $f3->get('POST.producto_id')]);
+            $this->M_Pedido_Detalle->load(['pedido_id = ? AND producto_id = ?', $f3->get('PARAMS.pedido_id'), $data['producto_id']);
             
             $existe = $this->M_Pedido_Detalle->loaded() > 0;
 
             $this->M_Pedido_Detalle->set('pedido_id', $f3->get('PARAMS.pedido_id'));
-            $this->M_Pedido_Detalle->set('producto_id', $f3->get('POST.producto_id'));
-            $this->M_Pedido_Detalle->set('cantidad', $f3->get('POST.cantidad'));
-            $this->M_Pedido_Detalle->set('precio', $f3->get('POST.precio'));
+            $this->M_Pedido_Detalle->set('producto_id', $data['producto_id']);
+            $this->M_Pedido_Detalle->set('cantidad', $data['cantidad']);
+            $this->M_Pedido_Detalle->set('precio', $data['precio']);
 
             if (!$existe) {
                 $this->M_Pedido_Detalle->save();

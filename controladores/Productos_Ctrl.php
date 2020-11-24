@@ -13,17 +13,17 @@ class Productos_Ctrl {
     public function crear($f3){
 
         //-------inicio---------RECIBIR DATOS RAW JSON------------------
-            if ($f3->VERB == 'POST' && preg_match('/json/',$f3->get('HEADERS[Content-Type]')))
-            {
-               $f3->set('BODY', file_get_contents('php://input'));
-               if (strlen($f3->get('BODY'))) {
-                  $data = json_decode($f3->get('BODY'),true);
-                  if (json_last_error() == JSON_ERROR_NONE) {
-                     $f3->set('Error',$data);
-                  }
-               }
-            }
-            //-------fin---------RECIBIR DATOS RAW JSON------------------
+        if ($f3->VERB == 'POST' && preg_match('/json/',$f3->get('HEADERS[Content-Type]')))
+        {
+           $f3->set('BODY', file_get_contents('php://input'));
+           if (strlen($f3->get('BODY'))) {
+              $data = json_decode($f3->get('BODY'),true);
+              if (json_last_error() == JSON_ERROR_NONE) {
+                 $f3->set('Error',$data);
+              }
+           }
+        }
+        //-------fin---------RECIBIR DATOS RAW JSON------------------
 
         $this->M_Producto->Load(['codigo = ?', $data['codigo']]);
 
